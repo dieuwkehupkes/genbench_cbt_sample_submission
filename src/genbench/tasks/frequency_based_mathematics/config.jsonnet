@@ -1,13 +1,11 @@
 {
     name: 'Frequency based mathematics',
 
-    // @TODO: Add a description of the task
     description: 'This sample submission measures generalisation in the domain of mathematical
                   questions, by quantifying the extent to which correctness depends on the 
                   frequency of the underlying terms. A model is said to be a stronger at
                   generalisation if its answers are less dependent on the term frequencies.
                   This test is inspired by the work of Razeghi et al (2022).
-                  and the performance.
                   ',
     keywords: [
         'mathematics',
@@ -22,7 +20,7 @@
 
     data_source: {
         type: 'manual',
-        test: 'https://raw.githubusercontent.com/GenBench/genbench_cbt/main/src/genbench/dummy_data/LLM_test.jsonl',
+        test: 'https://raw.githubusercontent.com/dieuwkehupkes/genbench_cbt_sample_submission/frequency_math/src/genbench/tasks/frequency_based_mathematics/test_data.jsonl',
     },
 
     has_validation_set: false,
