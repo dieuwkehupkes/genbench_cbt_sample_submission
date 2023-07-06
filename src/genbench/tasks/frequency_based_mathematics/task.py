@@ -1,12 +1,13 @@
-from typing import Any, List, Optional, Dict
+from typing import Any, List, Dict
 
 import datasets
-import pickle
 from scipy.stats import pearsonr
 from sklearn.metrics import accuracy_score
 
-from genbench.task_config import TaskConfig
+from genbench.utils.logging import get_logger
 from genbench import Task
+
+logger = get_logger(__name__)
 
 
 class FrequencyBasedMathematicsTask(Task):
@@ -26,25 +27,12 @@ class FrequencyBasedMathematicsTask(Task):
                 metric used for this task
     """
 
-    def __init__(
-        self,
-        config: TaskConfig,
-        root_task_id: str,
-        subtask_id: Optional[str] = None,
-    ):
-        super().__init__(config, root_task_id, subtask_id)
-
-        try:
-            term_freqs = open('term_frequencies.pkl', 'rb')
-            self.term_freqs = pickle.load(term_freqs)
-        except FileNotFoundError:
-            raise Exception("This evaluation requires information about term frequencies in the pretraining corpus, that should be provided by the user. For more information, we refer to the readme of this task.")
-
     def evaluate_predictions(
         self,
         *,
         predictions: List[Dict[str, Any]] = None,
         gold: datasets.Dataset = None,
+        term_freqs: Dict[str, int] = None,
     ) -> Dict[str, float]:
         """Evaluate the predictions of the model against the gold data.
         
@@ -56,6 +44,7 @@ class FrequencyBasedMathematicsTask(Task):
             predictions: A list of dictionaries, where each dictionary contains the predicted
                          values for an example. The keys are strings and the values the model predictions.
             gold: A HuggingFace `datasets.Dataset` object containing the ground truth data for the task.
+            term_freqs: A dictionary that maps the terms 10-30 to their frequencies in the pretraining corpus
             
         Returns:
             A dictionary containing key-value pairs for the evaluation metric(s) computed on the predicted
@@ -63,7 +52,23 @@ class FrequencyBasedMathematicsTask(Task):
             floating-point numbers.
         """
 
+        if term_freqs is None:
+            raise Exception("This evaluation requires information about term frequencies in the pretraining corpus, that should be provided by the user. For more information, we refer to the readme of this task.")
+
         scores, freqs = [], []
+
+        preds_list = [pred["target"] for pred in predictions]
+        refs_list = [g["target"] for g in gold]
+
+        ref_type = type(refs_list[0])
+        pred_type = type(preds_list[0])
+
+        # Make sure predictions and gold are the same type
+        if pred_type != ref_type:
+            if pred_type == str and ref_type == int:
+                logger.warning("Predictions are strings, but references are ints. Converting predictions to ints.")
+            elif pred_type == int and ref_type == str:
+                logger.warning("Predictions are ints, but references are strings. Converting references to ints.")
 
         # In the data, there are 20 examples for each term
         # in range (10, 50), we compute the avg accuracy per term
@@ -72,11 +77,11 @@ class FrequencyBasedMathematicsTask(Task):
         for n in range(40):
             # Fetch all accuracy scores for the predictions
             for prediction in predictions:
-                acc = accuracy_score(prediction[n:n+20], gold[n:n+20])
-                freq = self.term_freqs[n+10]
+                acc = accuracy_score(preds_list[n:n+20], refs_list[n:n+20])
+                freq = term_freqs[n+10]
                 scores.append(acc)
                 freqs.append(freq)
             
-        corr = pearsonr(scores, freqs)
+        corr = pearsonr(scores, freqs)[0]
 
-        return {'gen_score': 1-abs(corr)}
+        return {'gen_score': 1-abs(corr), 'accuracy': sum(scores)/len(scores)}
