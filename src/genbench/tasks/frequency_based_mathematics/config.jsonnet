@@ -1,11 +1,11 @@
 {
     name: 'Frequency based mathematics',
-
     description: 'This sample submission measures generalisation in the domain of mathematical
                   questions, by quantifying the extent to which correctness depends on the 
                   frequency of the underlying terms. A model is said to be a stronger at
                   generalisation if its answers are less dependent on the term frequencies.
                   This test is inspired by the work of Razeghi et al (2022).
+                  and the performance.
                   ',
     keywords: [
         'mathematics',
